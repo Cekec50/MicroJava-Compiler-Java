@@ -1,0 +1,242 @@
+INFO  18:48:32,964 - Compiling source file: C:\pp1domaci\workspace\MJCompiler\test\program.mj
+INFO  18:48:32,991 - #2 program
+INFO  18:48:32,991 - #15 MJProgram
+INFO  18:48:32,991 - #15 int
+INFO  18:48:32,993 - #15 x
+INFO  18:48:32,994 - #5 ;
+INFO  18:48:32,994 - #15 int
+INFO  18:48:32,995 - #15 y
+INFO  18:48:32,996 - #5 ;
+INFO  18:48:32,996 - #3 {
+INFO  18:48:32,996 - #15 int
+INFO  18:48:32,997 - #15 k
+INFO  18:48:32,997 - #6 (
+INFO  18:48:32,998 - #7 )
+INFO  18:48:32,999 - #15 int
+INFO  18:48:32,999 - #15 c
+INFO  18:48:32,999 - #5 ;
+INFO  18:48:32,999 - #3 {
+INFO  18:48:33,000 - #15 c
+INFO  18:48:33,000 - #8 =
+INFO  18:48:33,001 - #14 2
+INFO  18:48:33,002 - #5 ;
+INFO  18:48:33,003 - #9 return
+INFO  18:48:33,003 - #15 c
+INFO  18:48:33,003 - #10 +
+INFO  18:48:33,003 - #14 2
+INFO  18:48:33,004 - #5 ;
+INFO  18:48:33,004 - #4 }
+INFO  18:48:33,005 - #15 int
+INFO  18:48:33,006 - #15 main
+INFO  18:48:33,007 - #6 (
+INFO  18:48:33,007 - #7 )
+INFO  18:48:33,007 - #3 {
+INFO  18:48:33,007 - #12 print
+INFO  18:48:33,007 - #6 (
+INFO  18:48:33,007 - #14 1
+INFO  18:48:33,008 - #7 )
+INFO  18:48:33,008 - #5 ;
+INFO  18:48:33,009 - #15 x
+INFO  18:48:33,009 - #8 =
+INFO  18:48:33,009 - #15 y
+INFO  18:48:33,009 - #10 +
+INFO  18:48:33,009 - #14 5
+INFO  18:48:33,009 - #10 +
+INFO  18:48:33,010 - #14 3
+INFO  18:48:33,010 - #5 ;
+INFO  18:48:33,010 - #12 print
+INFO  18:48:33,010 - #6 (
+INFO  18:48:33,010 - #14 2
+INFO  18:48:33,010 - #7 )
+INFO  18:48:33,010 - #5 ;
+INFO  18:48:33,010 - #15 k
+INFO  18:48:33,011 - #6 (
+ERROR 18:48:33,011 - 
+Sintaksna greska na liniji 18
+INFO  18:48:33,011 - #7 )
+INFO  18:48:33,011 - #5 ;
+INFO  18:48:33,011 - #4 }
+INFO  18:48:33,012 - #4 }
+ERROR 18:48:33,012 - Izvrsen oporavak do ; u liniji 18
+INFO  18:48:33,021 - Program(
+  ProgName(
+   MJProgram
+  ) [ProgName]
+  VarDeclarations(
+    VarDeclarations(
+      NoVarDecl(
+      ) [NoVarDecl]
+      VarDecl(
+        Type(
+         int
+        ) [Type]
+       x
+      ) [VarDecl]
+    ) [VarDeclarations]
+    VarDecl(
+      Type(
+       int
+      ) [Type]
+     y
+    ) [VarDecl]
+  ) [VarDeclarations]
+  MethodDeclarations(
+    MethodDeclarations(
+      NoMethodDecl(
+      ) [NoMethodDecl]
+      MethodDecl(
+        MethodTypeName(
+          Type(
+           int
+          ) [Type]
+         k
+        ) [MethodTypeName]
+        NoFormParam(
+        ) [NoFormParam]
+        VarDeclarations(
+          NoVarDecl(
+          ) [NoVarDecl]
+          VarDecl(
+            Type(
+             int
+            ) [Type]
+           c
+          ) [VarDecl]
+        ) [VarDeclarations]
+        Statements(
+          Statements(
+            NoStmt(
+            ) [NoStmt]
+            MatchedStmt(
+              Assignment(
+                Designator(
+                 c
+                ) [Designator]
+                TermExpr(
+                  Term(
+                    Const(
+                     2
+                    ) [Const]
+                  ) [Term]
+                ) [TermExpr]
+              ) [Assignment]
+            ) [MatchedStmt]
+          ) [Statements]
+          MatchedStmt(
+            ReturnExpr(
+              AddExpr(
+                TermExpr(
+                  Term(
+                    Var(
+                      Designator(
+                       c
+                      ) [Designator]
+                    ) [Var]
+                  ) [Term]
+                ) [TermExpr]
+                Addop(
+                ) [Addop]
+                Term(
+                  Const(
+                   2
+                  ) [Const]
+                ) [Term]
+              ) [AddExpr]
+            ) [ReturnExpr]
+          ) [MatchedStmt]
+        ) [Statements]
+      ) [MethodDecl]
+    ) [MethodDeclarations]
+    MethodDecl(
+      MethodTypeName(
+        Type(
+         int
+        ) [Type]
+       main
+      ) [MethodTypeName]
+      NoFormParam(
+      ) [NoFormParam]
+      NoVarDecl(
+      ) [NoVarDecl]
+      Statements(
+        Statements(
+          Statements(
+            Statements(
+              NoStmt(
+              ) [NoStmt]
+              MatchedStmt(
+                PrintStmt(
+                  TermExpr(
+                    Term(
+                      Const(
+                       1
+                      ) [Const]
+                    ) [Term]
+                  ) [TermExpr]
+                ) [PrintStmt]
+              ) [MatchedStmt]
+            ) [Statements]
+            MatchedStmt(
+              Assignment(
+                Designator(
+                 x
+                ) [Designator]
+                AddExpr(
+                  AddExpr(
+                    TermExpr(
+                      Term(
+                        Var(
+                          Designator(
+                           y
+                          ) [Designator]
+                        ) [Var]
+                      ) [Term]
+                    ) [TermExpr]
+                    Addop(
+                    ) [Addop]
+                    Term(
+                      Const(
+                       5
+                      ) [Const]
+                    ) [Term]
+                  ) [AddExpr]
+                  Addop(
+                  ) [Addop]
+                  Term(
+                    Const(
+                     3
+                    ) [Const]
+                  ) [Term]
+                ) [AddExpr]
+              ) [Assignment]
+            ) [MatchedStmt]
+          ) [Statements]
+          MatchedStmt(
+            PrintStmt(
+              TermExpr(
+                Term(
+                  Const(
+                   2
+                  ) [Const]
+                ) [Term]
+              ) [TermExpr]
+            ) [PrintStmt]
+          ) [MatchedStmt]
+        ) [Statements]
+        MatchedStmt(
+          ErrorStmt(
+          ) [ErrorStmt]
+        ) [MatchedStmt]
+      ) [Statements]
+    ) [MethodDecl]
+  ) [MethodDeclarations]
+) [Program]
+INFO  18:48:33,023 - ===================================
+INFO  18:48:33,028 - Deklarisana promenljiva x na liniji 2
+INFO  18:48:33,028 - Deklarisana promenljiva y na liniji 2
+INFO  18:48:33,028 - Obradjuje se funkcija k na liniji 5
+INFO  18:48:33,028 - Deklarisana promenljiva c na liniji 5
+INFO  18:48:33,029 - Obradjuje se funkcija main na liniji 10
+INFO  18:48:33,029 -  Print count calls = 2
+INFO  18:48:33,029 -  Deklarisanih promenljivih ima = 3
+INFO  18:48:33,029 - ===================================
