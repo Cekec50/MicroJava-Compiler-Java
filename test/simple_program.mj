@@ -1,0 +1,13 @@
+program MJProgram
+
+	
+{
+	int sum(int a, int b){
+		return a + a;
+	}
+	
+	int main() int gas; {
+		
+		return 0;
+	}
+}
