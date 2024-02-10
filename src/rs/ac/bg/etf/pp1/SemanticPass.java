@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 import rs.ac.bg.etf.pp1.ast.*;
 import rs.etf.pp1.symboltable.*;
 import rs.etf.pp1.symboltable.concepts.*;
+import rs.ac.bg.etf.pp1.Sender.ValueTypeSender;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +16,6 @@ public class SemanticPass extends VisitorAdaptor {
 
 	private Object object;
 	public static Struct  boolType = new Struct(5);
-	int printCallCount = 0;
 	int varDeclCount = 0;
 	String namespaceName = null;
 	Obj currentMethod = null;
@@ -27,7 +27,14 @@ public class SemanticPass extends VisitorAdaptor {
 	List<Obj> constDeclList = new ArrayList<Obj>();
 	List<Obj> varDeclList = new ArrayList<Obj>();
 	List<Obj> varArrayDeclList = new ArrayList<Obj>();
-	int nVars;
+	List<Obj> designatorArray = new ArrayList<Obj>();
+	
+	int nVars = 0;
+	int methodNumber = 0;
+	int constNumber = 0;
+	int arrayNumber = 0;
+	int localVarNumber = 0;
+	int methodCallNumber = 0;
 	
 	Logger log = Logger.getLogger(getClass());
 
@@ -55,9 +62,16 @@ public class SemanticPass extends VisitorAdaptor {
 	}
 	
 	public void visit(ProgramClass program){
+    	Obj main = Tab.find("main");
+    	if(main == Tab.noObj)
+    		report_error("Greska: Mora postojati funkcija main!", null);
+    	else if(main.getType() != Tab.noType || main.getLevel() > 0)
+    		report_error("Greska: Main mora biti deklarisan kao void metoda bez argumenata!", null);
+    	
     	nVars = Tab.currentScope.getnVars();
     	Tab.chainLocalSymbols(program.getProgName().obj);
     	Tab.closeScope();
+    	
     }
 	
 	public void visit(NamespaceNameClass namespace){
@@ -70,7 +84,7 @@ public class SemanticPass extends VisitorAdaptor {
 	// **********Declarations**********
 	public void visit(ConstDeclClass constDecl){
 		Struct type1 = constDecl.getType().struct;
-    	Struct type2 = constDecl.getNumCharBool().struct;
+    	Struct type2 = constDecl.getNumCharBool().sender.struct;
     	// treba assignableTo()?
     	if(!type1.equals(type2)) {
     		report_error("Greska na liniji "+ constDecl.getLine()+" : nekompatibilni tipovi u definiciji konstante", null);
@@ -79,7 +93,10 @@ public class SemanticPass extends VisitorAdaptor {
 
 		if(namespaceName == null) objName = constDecl.getConstNameAttr();
 		else objName = namespaceName + "::" + constDecl.getConstNameAttr();
-    	Tab.insert(Obj.Con, objName, constDecl.getType().struct);
+		
+		TabInsertWithCheck(Obj.Con, objName, constDecl.getType().struct, constDecl.getNumCharBool().sender.value, 0, constDecl);
+    	//Obj objInTable1 = Tab.insert(Obj.Con, objName, constDecl.getType().struct);
+    	//objInTable1.setAdr(constDecl.getNumCharBool().sender.value);
     	
 		for (Obj obj : constDeclList){
 	    	type2 = obj.getType();
@@ -89,15 +106,20 @@ public class SemanticPass extends VisitorAdaptor {
 	    	
 			if(namespaceName == null) objName = obj.getName();
 			else objName = namespaceName + "::" + obj.getName();
-			Tab.insert(obj.getKind(), objName, constDecl.getType().struct);
+			
+
+			TabInsertWithCheck(obj.getKind(), objName, constDecl.getType().struct, obj.getAdr(), 0, constDecl);
+			//Obj objInTable = Tab.insert(obj.getKind(), objName, constDecl.getType().struct);
+			//objInTable.setAdr(obj.getAdr());
 		}
 		constDeclList.clear();
     	
-    		
+		constNumber++;
     }
 	
 	public void visit(ConstDeclMultiClass constDecl){
-		constDeclList.add(new Obj(Obj.Con, constDecl.getConstNameAttr(), constDecl.getNumCharBool().struct));
+		constDeclList.add(new Obj(Obj.Con, constDecl.getConstNameAttr(), constDecl.getNumCharBool().sender.struct, constDecl.getNumCharBool().sender.value, Obj.NO_VALUE));
+		constNumber++;
 	}
 	
 	public void visit(VarDeclClass varDecl){
@@ -109,28 +131,35 @@ public class SemanticPass extends VisitorAdaptor {
 		if(namespaceName == null) objName = varDecl.getVarNameAttr();
 		else objName = namespaceName + "::" + varDecl.getVarNameAttr();
 		
-		Tab.insert(Obj.Var, objName, varDecl.getType().struct);
+		TabInsertWithCheck(Obj.Var, objName, varDecl.getType().struct, 0, 0, varDecl);
+		//Tab.insert(Obj.Var, objName, varDecl.getType().struct);
 		for (Obj obj : varDeclList) {
 			if(namespaceName == null) objName = obj.getName();
 			else objName = namespaceName + "::" + obj.getName();
 			
-			Tab.insert(obj.getKind(), objName, varDecl.getType().struct);
+			TabInsertWithCheck(obj.getKind(), objName, varDecl.getType().struct, 0, 0, varDecl);
+			//Tab.insert(obj.getKind(), objName, varDecl.getType().struct);
 		}
 		for (Obj obj : varArrayDeclList) {
 			if(namespaceName == null) objName = obj.getName();
 			else objName = namespaceName + "::" + obj.getName();
-			
-			Tab.insert(obj.getKind(), objName, new Struct(Struct.Array, varDecl.getType().struct));
+
+			TabInsertWithCheck(obj.getKind(), objName, new Struct(Struct.Array, varDecl.getType().struct), 0, 0, varDecl);
+			//Tab.insert(obj.getKind(), objName, new Struct(Struct.Array, varDecl.getType().struct));
 		}
 		
 		varDeclList.clear();
 		varArrayDeclList.clear();
+		
+		localVarNumber++;
 	}
 	
 	public void visit(VarDeclMultiClass varDecl) {
 		varDeclCount++;
 		report_info("Deklarisana promenljiva "+ varDecl.getVarNameAttr(), varDecl);
 		varDeclList.add(new Obj(Obj.Var, varDecl.getVarNameAttr(), null));
+		
+		localVarNumber++;
 		
 	}
 	
@@ -143,31 +172,36 @@ public class SemanticPass extends VisitorAdaptor {
 		if(namespaceName == null) objName = varDecl.getVarNameAttr();
 		else objName = namespaceName + "::" + varDecl.getVarNameAttr();
 		
-		Tab.insert(Obj.Var, objName, new Struct(Struct.Array, varDecl.getType().struct));
+		TabInsertWithCheck(Obj.Var, objName, new Struct(Struct.Array, varDecl.getType().struct), 0, 0, varDecl);
+		//Tab.insert(Obj.Var, objName, new Struct(Struct.Array, varDecl.getType().struct));
 		
 		for (Obj obj : varDeclList) {
 			if(namespaceName == null) objName = obj.getName();
 			else objName = namespaceName + "::" + obj.getName();
-			
-			Tab.insert(obj.getKind(), objName, varDecl.getType().struct);
+
+			TabInsertWithCheck(obj.getKind(), objName, varDecl.getType().struct, 0, 0, varDecl);
+			//Tab.insert(obj.getKind(), objName, varDecl.getType().struct);
 		}
 		for (Obj obj : varArrayDeclList) {
 			if(namespaceName == null) objName = obj.getName();
 			else objName = namespaceName + "::" + obj.getName();
-			
-			Tab.insert(obj.getKind(), objName, new Struct(Struct.Array, varDecl.getType().struct));
+
+			TabInsertWithCheck(obj.getKind(), objName, new Struct(Struct.Array, varDecl.getType().struct), 0, 0, varDecl);
+			//Tab.insert(obj.getKind(), objName, new Struct(Struct.Array, varDecl.getType().struct));
 		}
 		
 		
 		varDeclList.clear();
 		varArrayDeclList.clear();
-	
+		
+		arrayNumber++;
 	}
 	
 	public void visit(VarArrayDeclMultiClass varDecl) {
 		varDeclCount++;
 		report_info("Deklarisan niz "+ varDecl.getVarNameAttr(), varDecl);
 		varArrayDeclList.add(new Obj(Obj.Var, varDecl.getVarNameAttr(), null));
+		arrayNumber++;
 		
 	}
 	
@@ -225,7 +259,7 @@ public class SemanticPass extends VisitorAdaptor {
 			report_error("Greska na liniji " + designator.getLine()+ " : expr mora biti tipa 'int'!", null);
 
 		//designator.obj = array;
-		designator.obj = new Obj(array.getKind(), array.getName(), array.getType().getElemType());
+		designator.obj = new Obj(Obj.Elem, array.getName(), array.getType().getElemType());
 	}
 	
 	public void visit(DesignatorFieldClass designator) {
@@ -237,7 +271,7 @@ public class SemanticPass extends VisitorAdaptor {
     	cnst.struct = Tab.intType;
     }
     public void visit(IntClass2 cnst){
-    	cnst.struct = Tab.intType;
+    	cnst.sender = new ValueTypeSender(cnst.getNumberAttr().intValue(), Tab.intType);
     }
     
     public void visit(CharClass chr){
@@ -245,19 +279,15 @@ public class SemanticPass extends VisitorAdaptor {
     }
     
     public void visit(CharClass2 chr){
-    	chr.struct = Tab.charType;
+    	chr.sender = new ValueTypeSender(chr.getCharAttr(), Tab.charType);
     }
     
     public void visit(BoolClass bool){
-    	// Koji tip je bool u tabeli simbola?
-    	//bool.struct = Tab.boolType;
     	bool.struct = boolType;
     }
     
     public void visit(BoolClass2 bool){
-    	// Koji tip je bool u tabeli simbola?
-    	//bool.struct = Tab.boolType;
-    	bool.struct = boolType;
+    	bool.sender = new ValueTypeSender(bool.getBoolAttr()? 1 : 0, boolType);
     }
     
     public void visit(NewArrayClass newArray) {
@@ -266,6 +296,10 @@ public class SemanticPass extends VisitorAdaptor {
     	// nije ovako!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     	newArray.struct = new Struct(Struct.Array, newArray.getType().struct);
     	
+    }
+    
+    public void visit(ParenExprClass parenExpr) {
+    	parenExpr.struct = parenExpr.getExpr().struct;
     }
 	
 	
@@ -287,21 +321,34 @@ public class SemanticPass extends VisitorAdaptor {
 
     	}
     	else {
-    		for(int i = 0; i < paramNumber; i++) {
-        		if(!localSymbolList.get(i).getType().compatibleWith(actParamList.get(i))) {
-        			report_error("Greska na liniji " + funcCall.getLine()+": argumenti nisu kompatibilni! " + localSymbolList.get(i).getType().getKind() + " - " + actParamList.get(i).getKind() , null);
-        		}
-        	}
+    		if(func.getName() == "len") {
+    			if(actParamList.get(0).getKind() != Struct.Array) {
+        			report_error("Greska na liniji " + funcCall.getLine()+": za funkciju 'len' argument mora biti niz!" , null);
+    			}
+    		}
+    		else {
+    			for(int i = 0; i < paramNumber; i++) {
+	        		if(!localSymbolList.get(i).getType().compatibleWith(actParamList.get(i))) {
+	        			report_error("Greska na liniji " + funcCall.getLine()+": argumenti nisu kompatibilni! " + localSymbolList.get(i).getType().getKind() + " - " + actParamList.get(i).getKind() , null);
+	        		}
+    			}
+    			
+    		}
+    		
     	}
     	paramNumber = 0;
     	actParamList.clear();
+    	
+    	methodCallNumber++;
     }
 	
 	public void visit(MethodTypeNameClass methodTypeName){
 		if(namespaceName != null)
-			currentMethod = Tab.insert(Obj.Meth, namespaceName + "::" + methodTypeName.getMethName(), methodTypeName.getType().struct);
+			currentMethod = TabInsertWithCheck(Obj.Meth, namespaceName + "::" + methodTypeName.getMethName(), methodTypeName.getType().struct, 0, 0, methodTypeName);
+			//currentMethod = Tab.insert(Obj.Meth, namespaceName + "::" + methodTypeName.getMethName(), methodTypeName.getType().struct);
 		else
-			currentMethod = Tab.insert(Obj.Meth, methodTypeName.getMethName(), methodTypeName.getType().struct);
+			currentMethod = TabInsertWithCheck(Obj.Meth, methodTypeName.getMethName(), methodTypeName.getType().struct, 0, 0, methodTypeName);
+			//currentMethod = Tab.insert(Obj.Meth, methodTypeName.getMethName(), methodTypeName.getType().struct);
     	methodTypeName.obj = currentMethod;
     	Tab.openScope();
 		report_info("Obradjuje se funkcija " + methodTypeName.getMethName(), methodTypeName);
@@ -323,18 +370,24 @@ public class SemanticPass extends VisitorAdaptor {
     	}
     	Obj function = Tab.find(currentMethod.getName());
     	function.setLevel(formParamCount);
-    	//Tab.insert(function.getKind(), function.getName(), function.getType(), function.getAdr(), formParamCount);
+    	
+    	methodDecl.obj = methodDecl.getMethodTypeName().obj;
+    	
     	Tab.chainLocalSymbols(currentMethod);
     	Tab.closeScope();
     	
     	formParamCount = 0;
     	returnFound = false;
     	currentMethod = null;
+    	
+    	methodNumber++;
     }
 	
 	public void visit(FormParamClass formParam) {
 		formParamCount++;
 		// proveriti da li ime vec postoji u tabeli simbola
+		//if(Tab.currentScope().findSymbol(formParam.getParamNameAttr()) != Tab.noObj)
+			//report_error("Greska na liniji " + formParam.getLine() + ": ime " + formParam.getParamNameAttr() + " vec postoji u tabeli simbola!", null);
 		report_info("Deklarisan parametar "+ formParam.getParamNameAttr(), formParam);
 		Tab.insert(Obj.Var, formParam.getParamNameAttr(), formParam.getType().struct);
 	}
@@ -363,7 +416,7 @@ public class SemanticPass extends VisitorAdaptor {
     
     public void visit(CondFactRelOpEqualClass condFact) {
     	Struct type1 = condFact.getExpr().struct;
-    	Struct type2 = condFact.getExpr().struct;
+    	Struct type2 = condFact.getExpr1().struct;
     	if(!type1.compatibleWith(type2)) {
     		report_error("Greska na liniji " + condFact.getLine() + " : " + "tipovi nisu kompatibilni!", null);
     		condFact.struct = Tab.noType;
@@ -374,7 +427,7 @@ public class SemanticPass extends VisitorAdaptor {
     
     public void visit(CondFactRelOpClass condFact) {
     	Struct type1 = condFact.getExpr().struct;
-    	Struct type2 = condFact.getExpr().struct;
+    	Struct type2 = condFact.getExpr1().struct;
     	if(!type1.compatibleWith(type2)) {
     		report_error("Greska na liniji " + condFact.getLine() + " : " + "tipovi nisu kompatibilni!", null);
     		condFact.struct = Tab.noType;
@@ -494,27 +547,27 @@ public class SemanticPass extends VisitorAdaptor {
 
     }
     
-    
+    // **********Designator Statements**********
     public void visit(DesignatorAssignmentClass assignment){
     	Obj obj = assignment.getDesignator().obj;
-    	if(obj.getKind() != Obj.Var)
+    	if(obj.getKind() != Obj.Var && obj.getKind() != Obj.Elem)
     		report_error("Greska na liniji " + assignment.getLine() + " : " + "designator nije promenljiva, element niza ni polje objekta! ", null);
 
     	if(!assignment.getExpr().struct.assignableTo(obj.getType()))
     		report_error("Greska na liniji " + assignment.getLine() + " : " + "nekompatibilni tipovi u dodeli vrednosti! ", null);
     }
     
-    public void visit(DesignatorIncClass designatorInc) {
+    public void visit(DesignatorIncClass designatorInc){
     	Obj obj = designatorInc.getDesignator().obj;
-    	if(obj.getKind() != Obj.Var)
+    	if(obj.getKind() != Obj.Var && obj.getKind() != Obj.Elem)
     		report_error("Greska na liniji " + designatorInc.getLine() + " : " + "designator nije promenljiva, element niza ni polje objekta! ", null);
     	if(obj.getType() != Tab.intType)
     		report_error("Greska na liniji " + designatorInc.getLine() + " : " + "designator mora biti tipa 'int'!"+obj.getType().getKind(), null);
     }
     
-    public void visit(DesignatorDecClass designatorInc) {
+    public void visit(DesignatorDecClass designatorInc){
     	Obj obj = designatorInc.getDesignator().obj;
-    	if(obj.getKind() != Obj.Var)
+    	if(obj.getKind() != Obj.Var && obj.getKind() != Obj.Elem)
     		report_error("Greska na liniji " + designatorInc.getLine() + " : " + "designator nije promenljiva, element niza ni polje objekta! ", null);
     	if(obj.getType() != Tab.intType)
     		report_error("Greska na liniji " + designatorInc.getLine() + " : " + "designator mora biti tipa 'int'!", null);
@@ -530,20 +583,72 @@ public class SemanticPass extends VisitorAdaptor {
     	Collection<Obj> localSymbolCollection = func.getLocalSymbols();
     	ArrayList<Obj> localSymbolList = new ArrayList<Obj>(localSymbolCollection);
     	int paramNumber = func.getLevel();
-    	if(paramNumber != actParamList.size()) {
+    	if(paramNumber != actParamList.size()){
 			report_error("Greska na liniji " + designatorFunc.getLine()+": broj formalnih i stvarnih argumenata nije isti! " + paramNumber + " - " + actParamList.size(), null);
 
     	}
     	else {
-    		for(int i = 0; i < paramNumber; i++) {
-        		if(!localSymbolList.get(i).getType().compatibleWith(actParamList.get(i))) {
-        			report_error("Greska na liniji " + designatorFunc.getLine()+": argumenti nisu kompatibilni! " + localSymbolList.get(i).getType().getKind() + " - " + actParamList.get(i).getKind() , null);
-        		}
-        	}
+    		if(func.getName() == "len") {
+    			if(actParamList.get(0).getKind() != Struct.Array) {
+        			report_error("Greska na liniji " + designatorFunc.getLine()+": za funkciju 'len' argument mora biti niz!" , null);
+    			}
+    		}
+    		else {
+    			for(int i = 0; i < paramNumber; i++) {
+	        		if(!localSymbolList.get(i).getType().compatibleWith(actParamList.get(i))) {
+	        			report_error("Greska na liniji " + designatorFunc.getLine()+": argumenti nisu kompatibilni! " + localSymbolList.get(i).getType().getKind() + " - " + actParamList.get(i).getKind() , null);
+	        		}
+    			}
+    			
+    		}
+    		
     	}
     	paramNumber = 0;
     	actParamList.clear();
     	
+    	methodCallNumber++;
+    	
+    }
+
+	
+	public void visit(DesignatorLeftClass designatorLeft) {
+		designatorLeft.obj = designatorLeft.getDesignator().obj;
+	}
+	
+	public void visit(DesignatorRightClass designatorRight) {
+		designatorRight.obj = designatorRight.getDesignator().obj;
+	}
+	
+    public void visit(DesignatorArrayAssignmentClass arrayAssignment) {
+    	
+    	Struct rightDesignatorElemType = arrayAssignment.getDesignatorRight().obj.getType().getElemType();
+    	if(rightDesignatorElemType == null ) rightDesignatorElemType = Tab.noType;
+    	Struct leftDesignatorElemType = arrayAssignment.getDesignatorLeft().obj.getType().getElemType();
+    	if(leftDesignatorElemType == null ) leftDesignatorElemType = Tab.noType;
+    	
+    	if(arrayAssignment.getDesignatorRight().obj.getType().getKind() != Struct.Array)
+			report_error("Greska na liniji " + arrayAssignment.getLine()+": Designator sa desne strane znaka za dodelu vrednosti mora predstavljati niz!" , null);
+    	if(arrayAssignment.getDesignatorLeft().obj.getType().getKind() != Struct.Array)
+			report_error("Greska na liniji " + arrayAssignment.getLine()+": Designator koji se nalazi posle znaka '*' mora biti niz!" , null);
+    	
+    	
+    	for(Obj obj: designatorArray) {
+    		if(obj.getKind() != Obj.Var && obj.getKind() != Obj.Elem)
+    			report_error("Greska na liniji " + arrayAssignment.getLine()+": " + obj.getName() + " mora biti promenljiva, element niza ili polje objekta!"  , null);
+    		if(!rightDesignatorElemType.compatibleWith(obj.getType())) 
+    			report_error("Greska na liniji " + arrayAssignment.getLine()+": tip elementa niza " + arrayAssignment.getDesignatorRight().obj.getName() + " mora biti kompatibilan pri dodeli sa " + obj.getName() + "!" , null);
+
+    		
+    	}
+    	if(!rightDesignatorElemType.compatibleWith(leftDesignatorElemType)) 
+			report_error("Greska na liniji " + arrayAssignment.getLine()+": tip elementa niza " + arrayAssignment.getDesignatorRight().obj.getName() + " mora biti kompatibilan pri dodeli sa tipom elementa niza " + arrayAssignment.getDesignatorLeft().obj.getName() + "!" , null);
+
+    	designatorArray.clear();
+
+    }
+    
+    public void visit(DesignatorArrayDesignatorArrayClass designatorArrayDesignator) {
+    	designatorArray.add(designatorArrayDesignator.getDesignator().obj);
     }
     
     public void visit(ActParamMultiClass actParam) {
@@ -580,18 +685,17 @@ public class SemanticPass extends VisitorAdaptor {
     
     public void visit(StatementReadClass statementRead) {
     	Obj obj = statementRead.getDesignator().obj;
-    	if(obj.getKind() != Obj.Var)
+    	if(obj.getKind() != Obj.Var && obj.getKind() != Obj.Elem)
     		report_error("Greska na liniji " + statementRead.getLine() + " : " + "designator nije promenljiva, element niza ni polje objekta! ", null);
     	if(obj.getType() != Tab.intType && obj.getType() != Tab.charType && obj.getType() != boolType) // 5 je bool tip
     		report_error("Greska na liniji " + statementRead.getLine() + " : " + "designator mora biti tipa 'int', 'char' ili 'bool'!", null);
      
     }
     public void visit(PrintStmtClass print) {
-		printCallCount++;
 		Struct type = print.getExpr().struct;
 		if(type != Tab.intType && type != Tab.charType && type != boolType)
     		report_error("Greska na liniji " + print.getLine() + " : " + "expr u 'print' mora biti tipa 'int', 'char' ili 'bool'!", null);
-		report_info("Print je tipa " + type.getKind(), null);
+		//report_info("Print je tipa " + type.getKind(), null);
 	
 	}
     
@@ -603,8 +707,37 @@ public class SemanticPass extends VisitorAdaptor {
     	Tab.closeScope();
     }
     
+    public void visit(VarDeclMultiErrorClass1 error) {
+		report_info("Deklarisana promenljiva "+ error.getVarNameAttr(), error);
+    }
+    
+    public void visit(VarDeclMultiErrorClass2 error) {
+		report_info("Deklarisana promenljiva "+ error.getVarNameAttr(), error);
+    }
+    
+    private Obj TabInsertWithCheck(int objKind, String objName, Struct objType, int objAdr, int objLevel, SyntaxNode node) {
+    	Obj objInTable = Tab.find(objName);
+    	Obj objForCheck = Tab.insert(objKind, objName, objType);
+    	if(objAdr != 0) objForCheck.setAdr(objAdr);
+    	if(objLevel != 0) objForCheck.setLevel(objLevel);
+    	if(objInTable == objForCheck)
+    		report_error("Greska na liniji " + node.getLine() + " : ime " + objName + " vec postoji unutar trenutnog opsega!", null);
+    	
+    	return objForCheck;
+    }
+    
     public boolean passed(){
     	return !errorDetected;
     }
     
 }
+
+// niz@1 = niz[1] + niz[len-1];
+//public void visit(DesignatorMonkeyClass designatorMonkey) {
+//	Obj array = designatorMonkey.getDesignator().obj;
+//	designatorMonkey.obj = new Obj(Obj.Elem, array.getName(), array.getType().getElemType()); 
+//}
+//
+//public void visit(UsingNamespaceClass usingNamespaceNode) {
+//	usingNamespace = usingNamespaceNode.getNmspNameAttr();
+//}

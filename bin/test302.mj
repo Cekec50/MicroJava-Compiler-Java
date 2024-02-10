@@ -54,11 +54,8 @@ int a, curr;
 		else print(0);  
 			
 		ibool = false;
-		for
-		( 
-		;; 
-		)
-		{ 
+		for(i=0; i < 5; i++){
+			if(i == 2) ibool = true;
 		}
 		
 		if(ibool)

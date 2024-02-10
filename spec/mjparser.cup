@@ -56,8 +56,7 @@ terminal PROG, BREAK, CLASS, IF, ELSE, CONST, NEW, PRINT, READ, RETURN, VOID, EX
 terminal PLUS_PLUS, PLUS, MINUS_MINUS, MINUS, STAR, SLASH, PERCENT ;
 terminal EQUAL_EQUAL, NOT_EQUAL, GREAT_EQUAL, LESS_EQUAL, GREAT, LESS, AND, OR ;
 terminal WILL_NAME_LATER, EQUAL, SEMI, COLON, COMMA, DOT, LPAREN, RPAREN, LBRACKET, RBRACKET, LBRACE, RBRACE ;
-//terminal PROG, LBRACE, RBRACE, SEMI, LPAREN, RPAREN, COMMA, PRINT, RETURN, PLUS, EQUAL, VOID;
-//terminal IF, ELSE;
+
 terminal Integer NUMBER ;
 terminal String IDENT ;
 terminal Boolean BOOL;
@@ -69,21 +68,25 @@ nonterminal MethodDeclList, ConstDecl, ConstDeclMulti, VarDecl, VarDeclMulti, Cl
 nonterminal ExtendsType;
 nonterminal StaticVarDeclList, StaticVarDecl, StaticInitializerList, StaticInitializer, StaticMethodDecl ;
 nonterminal StatementList, Statement, FormParamList, FormPars, FormParsEpsilon;
-nonterminal DesignatorStatementListEpsilon, DesignatorStatementList, DesignatorStatement, DesignatorEpsilon, DesignatorArray;
+nonterminal DesignatorStatementListEpsilonFirst, DesignatorStatementListEpsilon, DesignatorStatementList, DesignatorStatement, DesignatorEpsilon, DesignatorArray;
 nonterminal ElseStatementEpsilon, CondFactEpsilon, ActParsEpsilon, ActPars ;
-nonterminal RelOp, RelOpEqual, AddOp, MulOp ;	
+nonterminal RelOp, RelOpEqual;	
 nonterminal OpenScope, CloseScope;
-/*
-nonterminal rs.etf.pp1.symboltable.concepts.Obj Program, ProgName, Designator, MethodDecl, MethodTypeName ; 
-nonterminal rs.etf.pp1.symboltable.concepts.Struct Type, Term, Expr, Factor, VarDeclList; */
+nonterminal VarDeclMultiError;
 
 nonterminal  Program  ; 
 nonterminal  VarDeclList; 
 
+nonterminal rs.ac.bg.etf.pp1.Sender AddOp, MulOp, NumCharBool;
 nonterminal rs.etf.pp1.symboltable.concepts.Obj ProgName, MethodDecl, MethodTypeName, Designator ;
 nonterminal rs.etf.pp1.symboltable.concepts.Struct Type, Factor, Term, Expr, DesignatorOp;
-nonterminal rs.etf.pp1.symboltable.concepts.Struct NumCharBool;
 nonterminal rs.etf.pp1.symboltable.concepts.Struct Condition, CondTerm, CondFact;
+
+nonterminal IfConditionStart, IfConditionEnd;
+nonterminal ORoperator, ANDoperator;
+nonterminal ThenStart, ElseStart, ThenEnd, ElseEnd;
+nonterminal CondFactStart;
+nonterminal rs.etf.pp1.symboltable.concepts.Obj DesignatorLeft, DesignatorRight;
 
 precedence left ELSE;
 
@@ -127,11 +130,11 @@ ConstDeclMulti ::=  (ConstDeclMultiClass) ConstDeclMulti COMMA IDENT:constNameAt
 				/* epsilon */
 				;					
 
-NumCharBool ::=  (IntClass2) NUMBER
+NumCharBool ::=  (IntClass2) NUMBER:numberAttr
 				|
-				(CharClass2) CHAR
+				(CharClass2) CHAR:charAttr
 				|
-				(BoolClass2) BOOL
+				(BoolClass2) BOOL:boolAttr
 ;
 
 
@@ -145,8 +148,10 @@ VarDecl ::= (VarDeclClass) Type:varType IDENT:varNameAttr  VarDeclMulti SEMI
 			(VarArrayDeclClass) Type:varType IDENT:varNameAttr LBRACKET RBRACKET VarDeclMulti SEMI 
 			|
 			error SEMI
+			{: parser.report_error("Izvrsen oporavak od greske!", null); :}
 			|
-			error COMMA
+			error COMMA VarDeclMultiError SEMI
+			{: parser.report_error("Izvrsen oporavak od greske!", null); :}
 			;
 
 VarDeclMulti ::= (VarDeclMultiClass) VarDeclMulti COMMA IDENT:varNameAttr 
@@ -155,6 +160,11 @@ VarDeclMulti ::= (VarDeclMultiClass) VarDeclMulti COMMA IDENT:varNameAttr
 				|
 				/* epsilon */
 				;
+				
+VarDeclMultiError ::= (VarDeclMultiErrorClass1) IDENT:varNameAttr  COMMA VarDeclMultiError
+					|
+					(VarDeclMultiErrorClass2) IDENT:varNameAttr  
+					;
 /***********************************************************************************************************************************************************/
 ClassDecl ::= CLASS IDENT ExtendsType LBRACE StaticVarDeclList StaticInitializerList VarDeclList StaticMethodDecl RBRACE
 ;
@@ -204,14 +214,15 @@ FormParsEpsilon ::=  FormParamList
 			| 
 			/* epsilon */
 			|
-			error 
+			error
+			{: parser.report_error("Izvrsen oporavak od greske!", null); :}
 			;
 
 FormParamList ::=	FormParamList COMMA FormPars
 					|
 					FormPars
 					|
-					error COMMA FormPars
+					error {: parser.report_error("Izvrsen oporavak od greske!", null); :} COMMA FormPars
 					;
 					
 FormPars ::=  	(FormParamArrayClass) Type IDENT:paramNameAttr LBRACKET RBRACKET
@@ -233,9 +244,9 @@ StatementList ::= (StatementListClass) StatementList Statement
 
 Statement ::= DesignatorStatement SEMI
 			|
-			(StatementIfClass) IF LPAREN Condition RPAREN Statement 
+			(StatementIfClass) IF LPAREN IfConditionStart Condition IfConditionEnd RPAREN ThenStart Statement ThenEnd
 			|
-			(StatementIfElseClass) IF LPAREN Condition RPAREN Statement ELSE Statement
+			(StatementIfElseClass) IF LPAREN IfConditionStart Condition IfConditionEnd RPAREN ThenStart Statement ELSE ElseStart Statement ElseEnd
 			|
 			(StatementBreakClass) BREAK SEMI
 			|
@@ -247,21 +258,47 @@ Statement ::= DesignatorStatement SEMI
 			|
 			(StatementReadClass) READ LPAREN Designator RPAREN SEMI
 			|
-			(PrintStmtNumberClass) PRINT LPAREN Expr COMMA NUMBER RPAREN SEMI
+			(PrintStmtNumberClass) PRINT LPAREN Expr COMMA NUMBER:numberAttr RPAREN SEMI
 			|
 			(PrintStmtClass) PRINT LPAREN Expr RPAREN SEMI
 			|
-			(StatementForLoopClass) FOR LPAREN DesignatorStatementListEpsilon SEMI CondFactEpsilon SEMI DesignatorStatementListEpsilon RPAREN Statement
+			(StatementForLoopClass) FOR LPAREN DesignatorStatementListEpsilonFirst SEMI CondFactStart CondFactEpsilon SEMI DesignatorStatementListEpsilon RPAREN Statement
 			|
 			OpenScope StatementList CloseScope
 			|
-			error SEMI
+			Designator EQUAL error {: parser.report_error("Izvrsen oporavak od greske!", null); :} SEMI
+			|
+			error {: parser.report_error("Izvrsen oporavak od greske!", null); :} EQUAL Designator  SEMI
 			;
+			
+IfConditionStart ::= (IfConditionStartClass) /* epsilon */
+;
+			
+IfConditionEnd ::= (IfConditionEndClass) /* epsilon */
+;
+
+ThenStart ::= (ThenStartClass) /* epsilon */
+;
+
+ElseStart ::= (ElseStartClass) /* epsilon */
+;
+
+ThenEnd ::= (ThenEndClass) /* epsilon */
+;
+
+ElseEnd ::= (ElseEndClass) /* epsilon */
+;
+
+CondFactStart ::= (CondFactStartClass) /* epsilon */
+;
+
 OpenScope ::= (OpenScopeClass) LBRACE
 ;
 
 CloseScope ::= (CloseScopeClass) RBRACE
 ;
+
+
 
 /*
 Statement ::= (MatchedStmt) Matched | (UnmachedStmt) Unmatched ;
@@ -289,6 +326,11 @@ DesignatorStatementListEpsilon ::= (ForLoopStatementClass) DesignatorStatementLi
 									|
 									(ForLoopStatementEpsilonClass) /* epsilon */
 									;
+
+DesignatorStatementListEpsilonFirst ::=  (ForLoopStartClass) DesignatorStatementList
+										|
+										 (ForLoopStartClass2)/* epsilon */
+										;
 						
 DesignatorStatementList ::= DesignatorStatementList COMMA DesignatorStatement  
 							|
@@ -302,25 +344,21 @@ DesignatorStatement ::= (DesignatorAssignmentClass) Designator EQUAL Expr
 						|
  						(DesignatorDecClass) Designator MINUS_MINUS
 						|
-						LBRACKET DesignatorArray STAR Designator RBRACKET EQUAL Designator
+						(DesignatorArrayAssignmentClass) LBRACKET DesignatorArray STAR DesignatorLeft RBRACKET EQUAL DesignatorRight
 						;
-/*useless*/
-/*
-DesignatorOp ::= (DesignatorOpAssignmentClass) EQUAL Expr
-				|
-				(ProcCall) LPAREN ActParsEpsilon RPAREN
-				|
-				PLUS_PLUS
-				|
-				MINUS_MINUS
-				;	
-*/		
-DesignatorArray ::= DesignatorArray Designator COMMA
-				|
-				DesignatorArray  COMMA
-				|
-				/* epsilon */
-				;
+						
+DesignatorLeft ::= (DesignatorLeftClass) Designator
+;			
+			
+DesignatorRight ::= (DesignatorRightClass) Designator
+;
+		
+DesignatorArray ::= (DesignatorArrayDesignatorArrayClass) DesignatorArray Designator COMMA
+					|
+					(DesignatorArrayDesignatorClass) DesignatorArray  COMMA
+					|
+					/* epsilon */
+					;
 				
 ActParsEpsilon ::= ActPars
 				|
@@ -331,19 +369,26 @@ ActPars ::= (ActParamMultiClass) ActPars COMMA Expr
 			|
 			(ActParamClass) Expr
 			;
-Condition ::= 	(ConditionOrClass) Condition OR CondTerm
+Condition ::= 	(ConditionOrClass) Condition ORoperator CondTerm
 				|
 				(ConditionNoOrClass) CondTerm 
 				|
 				error
+				{: parser.report_error("Izvrsen oporavak od greske!", null); :}
 				;
-CondTerm ::= (CondTermAndClass) CondTerm AND CondFact
+
+ORoperator ::= (ORoperatorClass) OR;
+
+CondTerm ::= (CondTermAndClass) CondTerm ANDoperator CondFact
 			 |
 			 (CondTermNoAndClass) CondFact
 			 ;
-CondFactEpsilon ::= CondFact
+			 
+ANDoperator ::= (ANDoperatorClass) AND;
+
+CondFactEpsilon ::= (ForLoopCondFactClass) CondFact
 					|
-					/* epsilon */
+					(ForLoopNoCondFactClass) /* epsilon */
 					;
 					
 CondFact ::= (CondFactNoRelOpClass) Expr 
@@ -360,7 +405,7 @@ Expr ::= (AddExprClass) Expr:te AddOp Term:t
 		 (ExprMinusTermClass) MINUS Term
 		 ;
 
-Term ::= (TermMulopFactorClass)Term MulOp Factor
+Term ::= (TermMulopFactorClass) Term MulOp Factor
 		 |
 		 (TermFactorClass) Factor:t 
 		 ;
@@ -378,20 +423,10 @@ Factor ::= 	(VarClass) Designator
 			|
 			NEW Type LPAREN ActParsEpsilon RPAREN
 			|
-			LPAREN Expr RPAREN
+			(ParenExprClass) LPAREN Expr RPAREN
 			;
 
 
-/*
-Factor ::= (Const) NUMBER
-			|
-		   (Var) Designator:d
-		    |
-		   (FuncCall) Designator:func LPAREN ActParsEpsilon RPAREN
-		   ;*/
-/*
-Designator ::= (Designator) IDENT:name
-;*/
 
 Designator ::=  (DesignatorFieldClass) Designator DOT IDENT
 				|
@@ -411,30 +446,30 @@ ActualParamList ::= (ActualParams) ActualParamList COMMA Expr
 					|
 					(ActualParam) Expr
 					;*/
-RelOpEqual ::= EQUAL_EQUAL
+RelOpEqual ::= 	(EqualEqualClass) EQUAL_EQUAL
+				|
+				(NotEqualClass) NOT_EQUAL
+				;
+			
+RelOp ::= 	(GreaterThanClass) GREAT
 			|
-			NOT_EQUAL
+			(GreaterEqualClass) GREAT_EQUAL
+			|
+			(LesserThanClass) LESS
+			|
+			(LesserEqualClass) LESS_EQUAL
 			;
 			
-RelOp ::= 	GREAT
+AddOp ::= 	(AddOpClass) PLUS
 			|
-			GREAT_EQUAL
-			|
-			LESS
-			|
-			LESS_EQUAL
-			;
-			
-AddOp ::= 	 PLUS
-			|
-			MINUS
+			(SubOpClass) MINUS
 			;
 
-MulOp ::=	STAR
+MulOp ::=	(MulOpClass) STAR
 			|
-			SLASH
+			(DivOpClass) SLASH
 			|
-			PERCENT
+			(ModOpClass) PERCENT
 			;
 				
 

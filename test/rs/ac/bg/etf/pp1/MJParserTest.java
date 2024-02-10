@@ -3,6 +3,7 @@ package rs.ac.bg.etf.pp1;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -13,10 +14,15 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
 
 import rs.ac.bg.etf.pp1.ast.Program;
+import rs.ac.bg.etf.pp1.ast.SyntaxNode;
 import rs.ac.bg.etf.pp1.util.Log4JUtils;
 import rs.etf.pp1.symboltable.Tab;
 import rs.etf.pp1.symboltable.concepts.Obj;
+import rs.etf.pp1.symboltable.concepts.Scope;
 import rs.etf.pp1.symboltable.concepts.Struct;
+import rs.etf.pp1.symboltable.visitors.DumpSymbolTableVisitor;
+import rs.etf.pp1.symboltable.visitors.SymbolTableVisitor;
+import rs.etf.pp1.mj.runtime.Code;
 
 public class MJParserTest {
 
@@ -24,51 +30,79 @@ public class MJParserTest {
 		DOMConfigurator.configure(Log4JUtils.instance().findLoggerConfigFile());
 		Log4JUtils.instance().prepareLogFile(Logger.getRootLogger());
 	}
-
+	
 	public static void main(String[] args) throws Exception {
-		
 		Logger log = Logger.getLogger(MJParserTest.class);
+		if (args.length < 2) {
+			log.error("Not enough arguments supplied! Usage: MJParser <source-file> <obj-file> ");
+			return;
+		}
 		
-		Reader br = null;
-		try {
-			File sourceCode = new File("test/program.mj");
-			log.info("Compiling source file: " + sourceCode.getAbsolutePath());
+		File sourceCode = new File(args[0]);
+		if (!sourceCode.exists()) {
+			log.error("Source file [" + sourceCode.getAbsolutePath() + "] not found!");
+			return;
+		}
 			
-			br = new BufferedReader(new FileReader(sourceCode));
+		log.info("Compiling source file: " + sourceCode.getAbsolutePath());
+		
+		try (BufferedReader br = new BufferedReader(new FileReader(sourceCode))) {
 			Yylex lexer = new Yylex(br);
-			
 			MJParser p = new MJParser(lexer);
 	        Symbol s = p.parse();  //pocetak parsiranja
-	        
 	        Program prog = (Program)(s.value);
-	        Tab.init();
+	        
+			Tab.init(); // Universe scope
 	        Tab.currentScope.addToLocals(new Obj(Obj.Type, "bool", SemanticPass.boolType)); 
-			// ispis sintaksnog stabla
-			log.info(prog.toString(""));
-			log.info("===================================");
-
-			// ispis prepoznatih programskih konstrukcija
-			SemanticPass v = new SemanticPass();
-			prog.traverseBottomUp(v); 
-	      
-			log.info(" Print count calls = " + v.printCallCount);
-
-			log.info(" Deklarisanih promenljivih ima = " + v.varDeclCount);
+	        
+	        // ispis sintaksnog stabla
+	        //log.info(prog.toString(""));
+	        log.info("====================Semantic Processing========================");
 			
-			log.info("===================================");
-			Tab.dump();
 			
-			if(!p.errorDetected && v.passed()){
-				log.info("Parsiranje uspesno zavrseno!");
-			}else{
-				log.error("Parsiranje NIJE uspesno zavrseno!");
-			}
-		} 
-		finally {
-			if (br != null) try { br.close(); } catch (IOException e1) { log.error(e1.getMessage(), e1); }
+			SemanticPass semanticCheck = new SemanticPass();
+			prog.traverseBottomUp(semanticCheck);
+			
+
+			log.info("======================Syntax Analysis==========================");
+	        log.info("Globalnih promenljivih: " + semanticCheck.nVars);
+	        log.info("Deklarisanih promenljvih: " + semanticCheck.localVarNumber);
+	        log.info("Deklarisanih konstanti: " + semanticCheck.constNumber);
+	        log.info("Deklarisanih nizova: " + semanticCheck.arrayNumber);
+	        log.info("Metoda u programu: " + semanticCheck.methodNumber);
+	        log.info("Poziva funkcija: " + semanticCheck.methodCallNumber);
+	        // Symbol Table dump
+	        tsdump();
+	        
+	        if (!p.errorDetected && semanticCheck.passed()) {
+	        	File objFile = new File(args[1]);
+	        	log.info("Generating bytecode file: " + objFile.getAbsolutePath());
+	        	if (objFile.exists())
+	        		objFile.delete();
+	        	
+	        	// Code generation...
+	        	CodeGenerator codeGenerator = new CodeGenerator();
+	        	prog.traverseBottomUp(codeGenerator);
+	        	Code.dataSize = semanticCheck.nVars;
+	        	Code.mainPc = codeGenerator.getMainPc();
+	        	Code.write(new FileOutputStream(objFile));
+	        	log.info("Parsiranje uspesno zavrseno!");
+	        }
+	        else {
+	        	log.error("Parsiranje NIJE uspesno zavrseno!");
+	        }
 		}
-
 	}
 	
+
+	public static void tsdump() {
+		System.out.println("======================SYMBOL TABLE=============================");
+		
+		SymbolTableVisitor	stv = new DumpSymbolTableVisitorExtended();
+		for (Scope s = Tab.currentScope; s != null; s = s.getOuter()) {
+			s.accept(stv);
+		}
+		System.out.println(stv.getOutput());
+	}
 	
 }

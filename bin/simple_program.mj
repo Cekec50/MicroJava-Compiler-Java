@@ -1,13 +1,91 @@
-program MJProgram
+// Test301
 
+program test301
+
+namespace Konstante{
+	const int nula = 0;
+	const int jedan = 1;
+	const int pet = 5;
+	
+	{}
+}
+
+namespace Nizovi{
+	int niz[];
+	char nizch[];
+	
+	{}
+}
+	
+	
+	int a;
 	
 {
-	int sum(int a, int b){
-		return a + a;
+
+	int sum(int x, int y){
+	
+		return x + y;
+	
 	}
 	
-	int main() int gas; {
+	bool print_X_true(){
+		print('X');
+		return true;
+	}
+	
+	bool print_Y_false(){
+		return false;
+	}
+	void main()	
+		int bodovi;
+		bool boolean1;
+		char a, b, c, d;
+		char niz_levo[];
+		char niz_desno[];
+	{
+		niz_desno = new char[21];
+		niz_levo = new char[21];
+		niz_desno[0] = 'l';
+		niz_desno[1] = 'a';
+		niz_desno[2] = 'k';
+		niz_desno[3] = 'i';
+		niz_desno[4] = eol;
+		niz_desno[5] = 'p';
+		niz_desno[6] = 'e';
+		niz_desno[7] = 't';
+		niz_desno[8] = 'r';
+		niz_desno[9] = 'o';
+		niz_desno[10] = 'v';
+		niz_desno[11] = eol;
+		niz_desno[12] = 'l';
+		niz_desno[13] = 'i';
+		niz_desno[14] = 'l';
+		niz_desno[15] = eol;
+		niz_desno[16] = 'b';
+		niz_desno[17] = 'i';
+		niz_desno[18] = 't';
+		niz_desno[19] = 'c';
+		niz_desno[20] = 'h';
 		
-		return 0;
+		
+		
+		
+		
+		[a, b, c, d, *niz_levo] = niz_desno;
+		
+		
+		
+		
+		
+		print(a); print(b); print(c); print(d);
+		print(niz_levo[0]); print(niz_levo[1]); print(niz_levo[2]); print(niz_levo[3]);  
+		print(niz_levo[4]); print(niz_levo[5]); print(niz_levo[6]); print(niz_levo[7]); 
+		print(niz_levo[8]); print(niz_levo[9]); print(niz_levo[10]); print(niz_levo[11]);  
+		print(niz_levo[12]); print(niz_levo[13]); print(niz_levo[14]); print(niz_levo[15]);
+		print(niz_levo[16]); print(eol);
+		
+			
 	}
 }
+
+

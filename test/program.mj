@@ -1,4 +1,6 @@
-program MJProgram
+//Test 302
+
+program test302
 
 namespace Addition{
 
@@ -22,71 +24,46 @@ namespace Addition{
 	}
 }
 
-namespace Nizovi{
-	int niz[], niz2[], niz3[];
-	char nizch[];
-	
-	{}
-}
-namespace Konstante{
-	const int nula = 0, dva = 2;
-	const int jedan = 1;
-	const int pet = 5;
+namespace Unpacking{
+	int niz[],niz2[],niz3[];
+	int a,b;
 	
 	{}
 }
 
-	int x,y, array[], z;
-	char ch1, ch2, ch_array[];
-	const int x_const = 5;
-	bool istina;
-	const bool istina_1 = true;
-	
+int i;
+bool ibool;
+
+int niz2;
+
+int niz[];
+int a, curr;
+
 {
 	
 	
-	int func (int param_int, char param_char, bool param_bool) int c; {
-		c = 1;
-		return 5+5;
-	}
+	bool verify() {
+		print('v');
+		return false;
+	}	
 	
-	int main() int gas; {
-	
-		Nizovi::niz[1] = Konstante::nula;
-	
-		if(Nizovi::niz != array){
-		 return -1;
-		}
-	
-	
-		ch_array = new char[5];
-		x = 5;
-		//y = func(1,2);
-		func(1, ch1, istina);
-		x = func(Konstante::nula, ch_array[2], istina_1);
-		y = x;
-		ch1 = 'a';
-		ch2 = ch1;
-		
-		x++;
-		
-		for(;;){
-			break;
+	void main()
+	int i;
+	int j;
+	int k;
+	{
+		for(i = 0; i < 5; i++){
+		print('a');
+			for(j = 0; j < 5; j++){
+			print('B');
+				for(k = 0; k < 5; k++){
+					print('c');
+				}
+			}
 		}
 		
-		
-		if(istina){
-			x++;
-		}
-		
-		read(x);
-		print(array[5]);
-		
-		x = array[5];	
-		array[5] = 5;
-		
-		array[5]++;
-		
-		return 0;
+
+	
 	}
 }
+

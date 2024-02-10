@@ -1,0 +1,46 @@
+// Test301
+
+program test301
+	int a;
+	//GRESKA[]{}[]@;
+	//char GRESKA{}@#!@$, char2, char3;
+	
+{
+
+	int sum(int x, int y){
+	
+		return x + y;
+	
+	}
+	
+//	void bad_function(GRESKA{}{[]}){
+	
+	
+//	}
+	
+//	int bad_function_2(GRESKA{}{[]} , int y){
+	
+//		return y;
+//	}
+	
+	
+	void main()	
+		int x, y, z;
+		int bodovi;
+		bool boolean1;
+		char a, b, c, d;
+		char niz_levo[];
+		char niz_desno[];
+	{
+		
+//		y = GRESKA[[]{};
+//		GRESKA[[]{} = x;
+		
+//		if( GRESKA{]{123fa} ){
+//			y = 2;
+//		}
+			
+	}
+}
+
+

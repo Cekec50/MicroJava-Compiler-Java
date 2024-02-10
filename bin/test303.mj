@@ -68,12 +68,10 @@ class ProstiBrojevi{
 	static bool flag;
 	
 	static{
-		
 		print('s'); print('t'); print('a'); print('t'); print('i'); print('c'); print(eol);
 		prosti = new int[10];
 		
-		for( X = 0, i = 2; X < 10; i++)
-		{
+		for( X = 0, i = 2; X < 10; i++){
 			flag = true;
 			for(j = 2; j < i; j++){
 				if(i%j == 0){
