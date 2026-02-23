@@ -1,6 +1,6 @@
-# MJ Language Compiler
+# MicroJava Language Compiler
 
-A comprehensive compiler for the "MJ" programming language, built as a project for a Program Translators course. This compiler processes MJ source code through a full pipeline including lexical analysis, parsing, semantic analysis, and code generation, ultimately producing executable code for a custom virtual machine.
+A comprehensive compiler for the "MicroJava" programming language. This compiler processes MicroJava source code through a full pipeline including lexical analysis, parsing, semantic analysis, and code generation, ultimately producing executable code for a custom virtual machine. This project was developed as a part of the Program Translators 1 course at the University of Belgrade, School of Electrical Engineering.
 
 ## Tech Stack
 
